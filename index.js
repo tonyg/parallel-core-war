@@ -30,7 +30,7 @@ function dump_range_change() {
 }
 
 function reset_core() {
-    Math.seedrandom("core");
+    Math.seedrandom("parallelcore");
     core = new Core(12, false);
     renderer = new RenderCore("canvasCode", "canvasOwner", core);
 
