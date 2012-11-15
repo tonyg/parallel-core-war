@@ -1,4 +1,12 @@
 Color = {
+    fromRgb: function (r, g, b) {
+	return "rgb(" + r + "," + g + "," + b + ")";
+    },
+
+    fromTriple: function (c) {
+	return Color.fromRgb(c[0], c[1], c[2]);
+    },
+
     /**
      * HSV to RGB color conversion
      *

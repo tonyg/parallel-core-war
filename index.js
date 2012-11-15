@@ -32,7 +32,7 @@ function dump_range_change() {
 function reset_core() {
     Math.seedrandom("core");
     core = new Core(12, false);
-    renderer = new RenderCore("canvas", core);
+    renderer = new RenderCore("canvasCode", "canvasOwner", core);
 
     var source = document.getElementById("sourceCode").value;
     var targetAddr = core.randomAddr();

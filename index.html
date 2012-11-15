@@ -12,7 +12,10 @@
   </head>
   <body>
     <h1>Parallel Core War</h1>
-    <canvas id="canvas" width="256" height="256"></canvas>
+    <p>
+      <canvas id="canvasCode" width="256" height="256"></canvas>
+      <canvas id="canvasOwner" width="256" height="256"></canvas>
+    </p>
     <p>
       Instruction counter: <span id="instructionCounter">0</span>
     </p>
@@ -35,7 +38,7 @@ DAT 1 2 3 4 5
 </textarea>
 	</td>
 	<td>
-	  <textarea cols="50" rows="25" id="dumpArea"></textarea>
+	  <textarea cols="65" rows="25" id="dumpArea"></textarea>
 	  <br>
 	  Lo: <input id="dumpLo" value="0" onchange="dump_range_change()">
 	  Hi: <input id="dumpHi" value="0" onchange="dump_range_change()">

@@ -69,7 +69,7 @@ function Owner(color) {
 	var c = Color.hsvToRgb(Math.random() * 360,
 			       Math.random() * 50 + 50,
 			       100);
-	this.color = "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+	this.color = Color.fromTriple(c);
     }
 }
 
@@ -205,36 +205,45 @@ Core.prototype.assemble = function (source, targetaddr, owner) {
     return assemblyLength;
 };
 
+Core.prototype.makeSigned = function (v) {
+    return (v >= (1 << (this.wordsize - 1))) ? v - (this.maxint + 1) : v;
+};
+
 Core.prototype.dump = function (lo, hi) {
     var $elf = this;
 
     if (hi === 0) hi = this.core.length;
 
-    function makesigned(v) {
-	return (v >= (1 << ($elf.wordsize - 1))) ? v - ($elf.maxint + 1) : v;
-    }
-
     function encodeaddr(a) {
-	return Core.ModeSigils[a.mode] + makesigned(a.value);
+	return Core.ModeSigils[a.mode] + $elf.makeSigned(a.value);
     }
 
     var result = [];
-    for (var i = lo; i + 5 <= hi; i += 5) {
+    for (var raw_i = lo; raw_i + 5 <= hi; raw_i += 5) {
+	var i = raw_i & this.maxint;
+	var next_i = (raw_i + 5) & this.maxint;
 	var opword = this.core[i];
-	var condaddr = {mode: (opword >> 10) & 3, value: this.core[i+1]};
-	var t = {mode: (opword >> 8) & 3, value: this.core[i+2]};
-	var s1 = {mode: (opword >> 6) & 3, value: this.core[i+3]};
-	var s2 = {mode: (opword >> 4) & 3, value: this.core[i+4]};
+	var condaddr = {mode: (opword >> 10) & 3, value: this.core[(i+1)&this.maxint]};
+	var t = {mode: (opword >> 8) & 3, value: this.core[(i+2)&this.maxint]};
+	var s1 = {mode: (opword >> 6) & 3, value: this.core[(i+3)&this.maxint]};
+	var s2 = {mode: (opword >> 4) & 3, value: this.core[(i+4)&this.maxint]};
 	var op = opword & 15;
-	var line = "";
+	var line = ("000000" + i).slice(-6) + ": ";
 	if (condaddr.mode != Core.Modes.IMMEDIATE || condaddr.value != this.maxint) {
 	    line = line + "IF " + encodeaddr(condaddr) + " ";
 	}
 	line = line + Core.OpNames[op] +
 	    " " + encodeaddr(t) +
 	    " " + encodeaddr(s1) +
-	    " " + encodeaddr(s2) +
-	    "\t;;; " + this.core.slice(i, i + 5).join(" ");
+	    " " + encodeaddr(s2);
+	while (line.length < 32) line = line + " ";
+	if (next_i > i) {
+	    line = line + ";;; " + this.core.slice(i, next_i).join(" ");
+	} else {
+	    line = line + ";;; "
+		+ this.core.slice(i).join(" ") + " "
+		+ this.core.slice(0, next_i).join(" ");
+	}
 	result.push(line);
     }
     return result.join("\n");
