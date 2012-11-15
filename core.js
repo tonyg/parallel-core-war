@@ -171,7 +171,6 @@ Core.prototype.assemble = function (source, targetaddr, owner) {
 		line = m[2];
 	    }
 	    if ((m = line.match(/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/i))) {
-		var op = parseop(m[1]);
 		function parseop(op) {
 		    if (op.match(/add/i)) return 0;
 		    if (op.match(/sub/i)) return 1;
@@ -184,6 +183,7 @@ Core.prototype.assemble = function (source, targetaddr, owner) {
 		    if (op.match(/ge/i)) return 8;
 		    throw new Error("Invalid core operator " + op + " on line " + (linenum + 1));
 		}
+		var op = parseop(m[1]);
 		var t = parseaddr(m[2]);
 		var s1 = parseaddr(m[3]);
 		var s2 = parseaddr(m[4]);
