@@ -62,17 +62,40 @@
 //  - undefined operator
 //  - division/modulus by zero
 
-function Core(wordsize) {
+function Owner(color) {
+    if (color) {
+	this.color = color;
+    } else {
+	var c = Color.hsvToRgb(Math.random() * 360,
+			       Math.random() * 50 + 50,
+			       100);
+	this.color = "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+    }
+}
+
+function Core(wordsize, shouldRandomize) {
     if (wordsize < 12) {
 	throw new Error("Core's wordsize must not be less than 12");
     }
     this.wordsize = wordsize;
     this.maxint = (1 << wordsize) - 1;
     this.core = new Array(this.maxint + 1);
+    this.ownership = new Array(this.maxint + 1);
 
-    for (var i = 0; i < this.core.length; i++) {
-	this.core[i] = Math.floor(Math.random() * (this.maxint + 1));
+    if (shouldRandomize) {
+	for (var i = 0; i < this.core.length; i++) {
+	    this.core[i] = this.randomAddr();
+	    this.ownership[i] = new Owner();
+	}
+    } else {
+	var initialOwner = new Owner("black");
+	for (var i = 0; i < this.core.length; i++) {
+	    this.core[i] = 0;
+	    this.ownership[i] = initialOwner;
+	}
     }
+
+    this.instructionCounter = 0;
 }
 
 Core.Modes = {
@@ -87,30 +110,67 @@ Core.ModeSigils = [ '$', '', '??', '@' ];
 Core.OpNames = [ 'ADD', 'SUB', 'MUL', 'DIV', 'MOD', 'EQ', 'NE', 'LT',
 		 'GE', '??', '??', '??', '??', '??', '??', '??' ];
 
-Core.prototype.assemble = function (source, targetaddr) {
+Core.prototype.randomAddr = function () {
+    return Math.floor(Math.random() * (this.maxint + 1));
+};
+
+Core.prototype.assemble = function (source, targetaddr, owner) {
+    var $elf = this;
+    var assemblyLength = 0;
+
     function emitword(w) {
-	this.core[targetaddr] = w;
-	targetaddr++;
+	$elf.core[targetaddr] = w;
+	$elf.ownership[targetaddr] = owner;
+	targetaddr = (targetaddr + 1) & $elf.maxint;
+	assemblyLength++;
+    }
+
+    function addrval(val) {
+	var dotPos = val.indexOf(".");
+	if (dotPos == -1) {
+	    return Number(val) & $elf.maxint;
+	} else {
+	    return (5 * Number(val.slice(0, dotPos)) + Number(val.slice(dotPos + 1))) & $elf.maxint;
+	}
+    }
+
+    function parseaddr(addr) {
+	switch (addr[0]) {
+	case "$": return {mode: Core.Modes.IMMEDIATE, value: addrval(addr.slice(1))};
+	case "@": return {mode: Core.Modes.INDIRECT, value: addrval(addr.slice(1))};
+	default: return {mode: Core.Modes.DIRECT, value: addrval(addr)};
+	}
+    }
+
+    function stripComment(line) {
+	var semiPos = line.indexOf(";");
+	return (semiPos == -1) ? line : line.slice(0, semiPos);
     }
 
     var lines = source.split(/\n/);
     for (var linenum = 0; linenum < lines.length; linenum++) {
-	var line = lines[linenum].trim();
+	var line = lines[linenum];
 	var m;
 
+	line = stripComment(line).trim();
 	if (!line) continue;
+	console.log(line);
 
-	if ((m = line.match(/DAT\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/i))) {
+	if (line.match(/NOP/i)) {
+	    for (var i = 0; i < 5; i++) {
+		emitword(0);
+	    }
+	} else if ((m = line.match(/DAT\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/i))) {
 	    for (var i = 0; i < 5; i++) {
 		emitword(parseaddr(m[i + 1]).value);
 	    }
 	} else {
 	    var condaddr = {mode: Core.Modes.IMMEDIATE, value: this.maxint};
 	    if ((m = line.match(/IF\s+(\S+)\s+(.*)/i))) {
-		var condaddr = parseaddr(m[1]);
+		condaddr = parseaddr(m[1]);
 		line = m[2];
 	    }
-	    if ((m = line.match(/(\S)+\s+(\S)+\s+(\S)+\s+(\S)+/i))) {
+	    if ((m = line.match(/(\S+)\s+(\S+)\s+(\S+)\s+(\S+)/i))) {
 		var op = parseop(m[1]);
 		function parseop(op) {
 		    if (op.match(/add/i)) return 0;
@@ -141,15 +201,24 @@ Core.prototype.assemble = function (source, targetaddr) {
 	    }
 	}
     }
+
+    return assemblyLength;
 };
 
 Core.prototype.dump = function (lo, hi) {
+    var $elf = this;
+
     if (hi === 0) hi = this.core.length;
 
-    function encodeaddr(a) {
-	return Core.ModeSigils[a.mode] + a.value;
+    function makesigned(v) {
+	return (v >= (1 << ($elf.wordsize - 1))) ? v - ($elf.maxint + 1) : v;
     }
 
+    function encodeaddr(a) {
+	return Core.ModeSigils[a.mode] + makesigned(a.value);
+    }
+
+    var result = [];
     for (var i = lo; i + 5 <= hi; i += 5) {
 	var opword = this.core[i];
 	var condaddr = {mode: (opword >> 10) & 3, value: this.core[i+1]};
@@ -164,20 +233,24 @@ Core.prototype.dump = function (lo, hi) {
 	line = line + Core.OpNames[op] +
 	    " " + encodeaddr(t) +
 	    " " + encodeaddr(s1) +
-	    " " + encodeaddr(s2);
-	console.log(line);
+	    " " + encodeaddr(s2) +
+	    "\t;;; " + this.core.slice(i, i + 5).join(" ");
+	result.push(line);
     }
+    return result.join("\n");
 }
 
 Core.prototype.step = function () {
     var $elf = this;
     var newcore = this.core.slice(0);
+    var newownership = this.ownership.slice(0);
     for (var i = 0; i + 5 <= this.core.length; i += 5) {
 	var opword = this.core[i];
 	var condaddr = {mode: (opword >> 10) & 3, value: this.core[i+1]};
 	var t = {mode: (opword >> 8) & 3, value: this.core[i+2]};
 	var s1 = {mode: (opword >> 6) & 3, value: this.core[i+3]};
 	var s2 = {mode: (opword >> 4) & 3, value: this.core[i+4]};
+	var toStore;
 
 	function validR(a) {
 	    return a.mode != Core.Modes.INVALID_MODE;
@@ -190,11 +263,11 @@ Core.prototype.step = function () {
 	function lea(a) {
 	    switch (a.mode) {
 	    case Core.Modes.DIRECT:
-		return i + a.value;
+		return (i + a.value) & $elf.maxint;
 	    case Core.Modes.INDIRECT:
-		return i + a.value + $elf.core[i + a.value];
+		return (i + a.value + $elf.core[(i + a.value) & $elf.maxint]) & $elf.maxint;
 	    default:
-		"invalid";
+		throw {message: "Invalid mode " + a.mode};
 	    }
 	}
 
@@ -211,30 +284,23 @@ Core.prototype.step = function () {
 	if (!deref(condaddr)) continue;
 
 	switch (opword & 15) {
-	case 0: /* add */ newcore[lea(t)] = (deref(s1) + deref(s2)) & this.maxint; break;
-	case 1: /* sub */ newcore[lea(t)] = (deref(s1) - deref(s2)) & this.maxint; break;
-	case 2: /* mul */ newcore[lea(t)] = (deref(s1) * deref(s2)) & this.maxint; break;
-	case 3: /* div */ newcore[lea(t)] = Math.floor(deref(s1) / deref(s2)) & this.maxint; break;
-	case 4: /* mod */ newcore[lea(t)] = (deref(s1) % deref(s2)) & this.maxint; break;
-	case 5: /* eq */ newcore[lea(t)] = 0 + (deref(s1) == deref(s2)); break;
-	case 6: /* ne */ newcore[lea(t)] = 0 + (deref(s1) != deref(s2)); break;
-	case 7: /* lt */ newcore[lea(t)] = 0 + (deref(s1) < deref(s2)); break;
-	case 8: /* ge */ newcore[lea(t)] = 0 + (deref(s1) >= deref(s2)); break;
+	case 0: /* add */ toStore = (deref(s1) + deref(s2)) & this.maxint; break;
+	case 1: /* sub */ toStore = (deref(s1) - deref(s2)) & this.maxint; break;
+	case 2: /* mul */ toStore = (deref(s1) * deref(s2)) & this.maxint; break;
+	case 3: /* div */ toStore = Math.floor(deref(s1) / deref(s2)) & this.maxint; break;
+	case 4: /* mod */ toStore = (deref(s1) % deref(s2)) & this.maxint; break;
+	case 5: /* eq */ toStore = 0 + (deref(s1) == deref(s2)); break;
+	case 6: /* ne */ toStore = 0 + (deref(s1) != deref(s2)); break;
+	case 7: /* lt */ toStore = 0 + (deref(s1) < deref(s2)); break;
+	case 8: /* ge */ toStore = 0 + (deref(s1) >= deref(s2)); break;
 	default: continue;
 	}
+
+	newcore[lea(t)] = toStore;
+	newownership[lea(t)] = this.ownership[i];
     }
+
     this.core = newcore;
-}
-
-///////////////////////////////////////////////////////////////////////////
-
-require("./seedrandom.js");
-Math.seedrandom("core");
-var core = new Core(12);
-var counter = 0;
-while (true) {
-    console.log(counter + " ----------------------------------------");
-    counter++;
-    //core.dump(0, 50);
-    core.step();
+    this.ownership = newownership;
+    this.instructionCounter++;
 }

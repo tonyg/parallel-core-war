@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Parallel Core War</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="seedrandom.js"></script>
+    <script type="text/javascript" src="color.js"></script>
+    <script type="text/javascript" src="core.js"></script>
+    <script type="text/javascript" src="rendercore.js"></script>
+    <script type="text/javascript" src="index.js"></script>
+  </head>
+  <body>
+    <h1>Parallel Core War</h1>
+    <canvas id="canvas" width="256" height="256"></canvas>
+    <p>
+      Instruction counter: <span id="instructionCounter">0</span>
+    </p>
+    <p>
+      <button onclick="reset_core()">Reset</button>
+      <button onclick="run_core()">Run</button>
+      <button onclick="stop_core()">Stop</button>
+      <button onclick="step_core()">Step</button>
+    </p>
+    <table>
+      <tr>
+	<td>
+	  <textarea cols="50" rows="25" id="sourceCode">; Default ancestor
+DAT 5 4 3 2 1
+DAT 0 0 0 -8 21
+IF -1.2 ADD -1.3 -1.3 $1
+IF -2.2 ADD -2.4 -2.4 $1
+IF -3.2 ADD @-3.4 @-3.3 $0
+DAT 1 2 3 4 5
+</textarea>
+	</td>
+	<td>
+	  <textarea cols="50" rows="25" id="dumpArea"></textarea>
+	  <br>
+	  Lo: <input id="dumpLo" value="0" onchange="dump_range_change()">
+	  Hi: <input id="dumpHi" value="0" onchange="dump_range_change()">
+	</td>
+      </tr>
+    </table>
+    <script>index_main();</script>
+  </body>
+</html>
