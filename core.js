@@ -118,6 +118,8 @@ Core.prototype.assemble = function (source, targetaddr, owner) {
     var $elf = this;
     var assemblyLength = 0;
 
+    targetaddr = targetaddr & $elf.maxint;
+
     function emitword(w) {
 	$elf.core[targetaddr] = w;
 	$elf.ownership[targetaddr] = owner;
