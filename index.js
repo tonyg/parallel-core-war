@@ -17,7 +17,7 @@ function single_iteration() {
 
 function refresh_display() {
     renderer.repaint();
-    document.getElementById("instructionCounter").innerText = core.instructionCounter;
+    document.getElementById("instructionCounter").innerHTML = core.instructionCounter;
 
     var lo = Number(document.getElementById("dumpLo").value);
     var hi = Number(document.getElementById("dumpHi").value);
