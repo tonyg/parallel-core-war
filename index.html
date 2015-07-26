@@ -29,97 +29,27 @@
       <tr>
 	<td valign=top>
 	  <p>Source code:</p>
-	  <textarea cols="50" rows="25" id="sourceCode">; Default ancestor
-;
-; Strategy: Scan backwards through core to find 0xffff
-;           Scan forwards through core to find 0xfffe
-;           When both are found, copy repeatedly to new location.
-;
-0xffff
-
-;---------------------------------------------------------------------------
-
-state:		0
-		;; States:
-		;;  0 = scanning for beginning and end
-
-begprobestart:
-		IF.Z state AND begmasked @begprobe begmask
-begmask:	0x3ffff
-begmasked:	-1
-begprobe:	begprobestart
-		SUB begprobediff begmasked +1
-	        0xffff
-begprobediff:	-1
-		IF.Z begfound ADD begprobe begprobe +1
-		-1
-begfound:	0
-		IF.Z begprobediff ADD begfound @+1 +2
-		begprobe
-		-3
-
-		state
-		IF.Z @-1 AND endmasked @endprobe +1
-		0x3ffff
-endmasked:	-1
-endprobe:	endprobediff ;; skip over the matching literal at +2
-		SUB endprobediff endmasked +1
-		0xfffe
-endprobediff:	-1
-		IF.Z endfound ADD endprobe endprobe +1
-		1
-endfound:	0
-		IF.Z endprobediff ADD endfound @+1 +2
-		endprobe
-		-8
-
-		begfound
-		IF.NZ @-1 OR +2 +1 +1
-		1
-		0
-		endfound
-		IF.NZ @-1 OR +1 -2 -2
-		0
-		IF.NZ -1 OR @L1 +2 +2
-L1:		state
-L2:		1
-
-		SUB stateisone @L1 L2
-stateisone:	-1
-targetptr:	2000
-count:		0
-
-		begfound
-		endfound
-		stateisone
-		IF.Z @-1 SUB +1 @-2 @-3
-		0
-		IF.NZ -1 ADD @+1 -1 +2
-		count
-		(endfound-begfound+1)
-
-METHYLATION to disable an instruction after it executes? Then mask off the methylation bit when copying
-Should methylation be visible to arithmetic? Should it be visible at all?
-
-;; 		IF.Z stateisone ADD begaddr begaddrloc @begaddrloc
-;; begaddrloc:	begfound
-;; endaddrloc:	endfound
-;; begaddr:	0
-;; endaddr:	0
-;; 	        stateisone
-;; 		IF.Z @-1 ADD endaddr endaddrloc @endaddrloc
-;; 		IF.Z @-2 OR @+1 +2 +2
-;; 		begprobe
-;; 		(begprobestart-begprobe)
-;; 	        stateisone
-;; 		IF.Z @-1 OR @+1 +2 +2
-;; 		endprobe
-;; 		(endprobestart-endprobe)
-
-;---------------------------------------------------------------------------
-
-0xfffe
-
+<textarea cols="50" rows="25" id="sourceCode">
+;; Simple, though boring, self-replicator
+targetpos:		target
+sourcepos:		start
+remaining:		(end-start)
+start:			IF.+ remaining OR @targetpos @sourcepos @sourcepos
+			IF.+ remaining ADD targetpos targetpos +2
+			IF.+ remaining ADD sourcepos sourcepos +1
+			+1
+			targetpos
+			IF.NZ @-1 SUB @+3 +1 @+2
+			(end-start+1)
+			sourcepos
+			remaining
+			IF.Z @-1 OR nexttarget +1 +1
+			(target-targetpos)
+nexttarget:		0
+nextsource:		(start-sourcepos)
+			-1
+end:
+target:
 </textarea>
 	</td>
 	<td valign=top>

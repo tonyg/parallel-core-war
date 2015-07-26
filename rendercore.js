@@ -1,5 +1,5 @@
-function RenderCore(canvasCodeId, canvasOwnerId, core) {
-    this.scale = 4;
+function RenderCore(canvasCodeId, canvasOwnerId, core, initialScale) {
+    this.scale = (initialScale || 4);
     this.core = core;
     this.canvasCode = document.getElementById(canvasCodeId);
     this.canvasOwner = document.getElementById(canvasOwnerId);
@@ -8,7 +8,6 @@ function RenderCore(canvasCodeId, canvasOwnerId, core) {
 
     var cellCount = this.core.core.length;
     this.width = Math.floor(Math.sqrt(cellCount));
-    this.width = 5 * Math.floor(this.width / 5);
     this.height = Math.ceil(cellCount / this.width);
 
     this.canvasCode.width = this.width * this.scale;

@@ -12,7 +12,7 @@ function single_iteration() {
 	core.step();
 	refresh_display();
     }
-    setTimeout(single_iteration, 10);
+    setTimeout(single_iteration, 0);
 }
 
 function refresh_display() {
@@ -32,14 +32,15 @@ function dump_range_change() {
 
 function reset_core() {
     Math.seedrandom("parallelcore");
-    core = new Core(4096, false);
-    renderer = new RenderCore("canvasCode", "canvasOwner", core);
+    core = new Core(30*30, false);
+    renderer = new RenderCore("canvasCode", "canvasOwner", core, 10);
 
     var source = document.getElementById("sourceCode").value;
-    var targetAddr = core.clamp(core.randomWord());
+    var targetAddr = 500; //core.clamp(core.randomWord());
     var assemblyLength = core.assemble(source, targetAddr, owner);
     if (!dumpRangeChanged) {
 	document.getElementById("dumpLo").value = String(targetAddr);
+        // document.getElementById("dumpHi").value = String(targetAddr);
 	document.getElementById("dumpHi").value = String(targetAddr + assemblyLength
 							 + 25 /* TODO remove the 25 */ );
     }

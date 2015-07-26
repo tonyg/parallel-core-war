@@ -336,7 +336,7 @@ Core.prototype.step = function () {
     target = lea(instr.t);
     if (touched[target]) {
       // Conflict. Restore previous value.
-      console.log("conflict at " + target);
+      // console.log("conflict at " + target);
       newcore[target] = this.core[target];
     } else {
       // if (toStore !== null) {
