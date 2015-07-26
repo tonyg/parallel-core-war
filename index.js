@@ -21,7 +21,8 @@ function refresh_display() {
 
     var lo = Number(document.getElementById("dumpLo").value);
     var hi = Number(document.getElementById("dumpHi").value);
-    document.getElementById("dumpArea").value = (lo == hi) ? "" : core.dump(lo, hi);
+    document.getElementById("dumpArea").value = document.getElementById("dumpAreaPost").value;
+    document.getElementById("dumpAreaPost").value = (lo == hi) ? "" : core.dump(lo, hi);
 }
 
 function dump_range_change() {
@@ -31,17 +32,18 @@ function dump_range_change() {
 
 function reset_core() {
     Math.seedrandom("parallelcore");
-    core = new Core(12, false);
+    core = new Core(4096, false);
     renderer = new RenderCore("canvasCode", "canvasOwner", core);
 
     var source = document.getElementById("sourceCode").value;
-    var targetAddr = core.randomAddr();
+    var targetAddr = core.clamp(core.randomWord());
     var assemblyLength = core.assemble(source, targetAddr, owner);
     if (!dumpRangeChanged) {
 	document.getElementById("dumpLo").value = String(targetAddr);
 	document.getElementById("dumpHi").value = String(targetAddr + assemblyLength
 							 + 25 /* TODO remove the 25 */ );
     }
+    document.getElementById("dumpAreaPost").value = "";
 
     stop_core();
     refresh_display();

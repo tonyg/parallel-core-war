@@ -18,32 +18,37 @@ function RenderCore(canvasCodeId, canvasOwnerId, core) {
 }
 
 RenderCore.prototype.repaint = function () {
-    var scale = this.scale;
-    for (var y = 0; y < this.height; y++) {
-	for (var x = 0; x < this.width; x++) {
-	    var i = y * this.width + x;
+  var scale = this.scale;
+  for (var y = 0; y < this.height; y++) {
+    for (var x = 0; x < this.width; x++) {
+      var i = y * this.width + x;
 
-	    if (i < this.core.core.length) {
-		var hue = Math.log(this.core.makeSigned(this.core.core[i]));
-		var codeColor;
-		if (hue >= 0) {
-		    hue = hue / Math.log(2);
-		    hue = hue / this.core.wordsize;
-		    hue = ((hue * 180) + 360) % 360;
-		    codeColor = Color.fromTriple(Color.hsvToRgb(hue, 100, 100));
-		} else {
-		    codeColor = "black";
-		}
-		this.codeContext.fillStyle = codeColor;
-		this.codeContext.fillRect(x * scale, y * scale, scale, scale);
+      if (i < this.core.core.length) {
+	var codeColor;
+	var hue;
+	var w = this.core.core[i];
+	var sign = (w < 0) ? -1 : 1;
+	w = (w < 0) ? -w : w;
 
-		var o = this.core.ownership[i];
-		this.ownerContext.fillStyle = o.color;
-		this.ownerContext.fillRect(x * scale, y * scale, scale, scale);
-	    } else {
-		this.codeContext.clearRect(x * scale, y * scale, scale, scale);
-		this.ownerContext.clearRect(x * scale, y * scale, scale, scale);
-	    }
+	if (w != 0) {
+	  w = Math.log(w) / Math.log(2);
+	  w = w / 24;
+	  hue = ((sign * w * 180) + 360) % 360;
+	  codeColor = Color.fromTriple(Color.hsvToRgb(hue, 100, 100));
+	} else {
+	  codeColor = "black";
 	}
+
+	this.codeContext.fillStyle = codeColor;
+	this.codeContext.fillRect(x * scale, y * scale, scale, scale);
+
+	var o = this.core.ownership[i];
+	this.ownerContext.fillStyle = o.color;
+	this.ownerContext.fillRect(x * scale, y * scale, scale, scale);
+      } else {
+	this.codeContext.clearRect(x * scale, y * scale, scale, scale);
+	this.ownerContext.clearRect(x * scale, y * scale, scale, scale);
+      }
     }
+  }
 };
